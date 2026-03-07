@@ -35,6 +35,80 @@ flowchart LR
 
 ---
 
+## 양방향 데이터 흐름
+
+Smartscore와 Golf Genius 간의 연동은 **양방향 구조**로 설계되어야 한다.
+
+### Inbound: Golf Genius → Smartscore (마스터 데이터)
+
+- League, Season, Event, Roster, Round, Pairing 정보
+- Polling 방식으로 주기적 동기화
+- 상위 식별자 계층이 먼저 안정적으로 매핑되어야 스코어 처리 가능
+
+### Outbound: Smartscore → Golf Genius (스코어 데이터)
+
+- Smartscore Tablet에서 입력된 스코어
+- 실시간 전송 (홀 완료 시) + 라운드 종료 시 전체 재전송
+- 네트워크 장애 시 로컬 저장 후 복구 시 일괄 전송
+
+### Inbound 연동 방식: Hybrid (Polling + Webhook)
+
+Golf Genius는 **Webhook과 Polling 모두 지원**한다. Smartscore는 Hybrid 전략을 사용한다.
+
+| 방식 | 용도 | 주기 |
+|------|------|------|
+| Polling | 새 Event 감지, Webhook 자동 설정 | 5분 |
+| Webhook | 실시간 변경 수신 (Pairings, Scores, Players) | 실시간 |
+| 재설정 | 진행 중 Event Webhook 재설정 (GG Admin 변경 대응) | 1시간 |
+
+### 양방향 아키텍처 다이어그램
+
+```mermaid
+flowchart TB
+    subgraph Smartscore
+        TABLET[Smartscore Tablet\n카트에 설치]
+        SS_SERVER[Smartscore Server]
+        POLLER[Sync Poller]
+        WEBHOOK_RX[Webhook Receiver]
+        CORE[(Core DB)]
+        CACHE[(Redis Cache)]
+    end
+
+    subgraph GolfGenius
+        GG_API[Golf Genius API]
+    end
+
+    %% Outbound: Score Push
+    TABLET -->|스코어 입력| SS_SERVER
+    SS_SERVER -->|실시간 Push\nPOST /api/holes| GG_API
+    SS_SERVER -->|라운드 종료 시\nPOST /api/scores| GG_API
+
+    %% Inbound: Hybrid (Polling + Webhook)
+    POLLER -->|5분마다\nGET /events| GG_API
+    POLLER -->|새 Event 감지 시\nPUT /events\nWebhook 설정| GG_API
+    GG_API -->|실시간 Push\nPairings/Scores/Players| WEBHOOK_RX
+
+    POLLER --> CORE
+    WEBHOOK_RX --> CORE
+    SS_SERVER --> CORE
+    SS_SERVER --> CACHE
+```
+
+### Webhook 자동 설정 흐름
+
+```mermaid
+flowchart LR
+    A[5분마다 Polling] --> B{새 Event?}
+    B -- Yes --> C[PUT /events\nWebhook 설정]
+    C --> D[DB에 기록]
+    B -- No --> A
+
+    E[1시간마다] --> F[진행 중 Event\nWebhook 재설정]
+    F --> G[GG Admin 변경\n자동 복구]
+```
+
+---
+
 ## 컴포넌트별 역할
 
 ### 1) Sync Poller
@@ -57,7 +131,7 @@ flowchart LR
 
 ### 4) Normalizer / Mapper
 
-- Golf Genius 응답을 Smartscore 내부 스키마로 변환한다.
+- Smartscore 내부 스키마로 Golf Genius 응답을 변환한다.
 - `Player`, `Roster Entry`, `Event`, `Round`, `Score`를 내부 엔터티에 매핑한다.
 - 외부 명칭이 바뀌거나 필드가 추가되어도 여기만 조정하면 된다.
 

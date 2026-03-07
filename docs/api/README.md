@@ -1,6 +1,26 @@
 # Golf Genius API Reference
 
-Golf Genius API v2에 대한 레퍼런스 문서 및 테스트 도구입니다.
+Golf Genius API에 대한 레퍼런스 문서 및 테스트 도구입니다.
+
+---
+
+## API 종류
+
+Golf Genius 연동에는 세 가지 API가 사용됩니다:
+
+| API | 용도 | 방향 |
+|-----|------|------|
+| [API v2](./golfgeniusapiv2.apib) | 마스터 데이터 조회/관리 (Event, Roster, Round 등) | GG → SS (Polling) |
+| [Live Scoring API](./live-scoring-api.md) | 스코어 실시간 전송 | SS → GG (Push) |
+| Webhook | 실시간 변경 알림 (Pairings, Scores, Players 등) | GG → SS (Push) |
+
+### 핵심 개발 범위 (Step 5, 6, 7)
+
+| Step | 설명 | 관련 API |
+|------|------|----------|
+| Step 5 | 카트에 참가자 배정 | [API v2 Tee Sheet](./golfgeniusapiv2.apib) - Pairing Group 조회 |
+| Step 6 | 스코어 실시간 전송 | **[Live Scoring API](./live-scoring-api.md)** |
+| Step 7 | 리더보드 표시 | Golf Genius 측 확인 필요 |
 
 ---
 
@@ -9,6 +29,7 @@ Golf Genius API v2에 대한 레퍼런스 문서 및 테스트 도구입니다.
 ```
 api/
 ├── README.md                    # 현재 문서
+├── live-scoring-api.md          # Live Scoring API (스코어 전송) ⭐ 핵심
 ├── golfgeniusapiv2.apib         # 원본 API Blueprint (참고용)
 ├── openapi/
 │   ├── golfgenius-api-v2.yaml   # OpenAPI 3.0 스펙 (YAML)
@@ -130,6 +151,52 @@ curl -X POST "https://www.golfgenius.com/api_v2/events" \
 
 ---
 
+## Webhook 설정 API
+
+Event 생성/수정 API를 통해 Webhook을 프로그래밍 방식으로 설정할 수 있습니다.
+
+### Webhook 설정 예시
+
+```http
+PUT /api_v2/events/{event_id}
+Authorization: Bearer {api_key}
+Content-Type: application/json
+
+{
+  "webhooks": {
+    "pairings": {
+      "endpoint": "https://api.smartscore.kr/webhooks/pairings",
+      "enabled": true
+    },
+    "scores": {
+      "endpoint": "https://api.smartscore.kr/webhooks/scores",
+      "enabled": true
+    },
+    "players": {
+      "endpoint": "https://api.smartscore.kr/webhooks/players",
+      "enabled": true
+    }
+  }
+}
+```
+
+### 지원 Webhook 종류
+
+| Webhook Key | 용도 |
+|-------------|------|
+| `courses` | 코스 정보 변경 |
+| `pairings` | 조 편성 변경 |
+| `players` | 참가자(Roster) 변경 |
+| `scores` | 스코어 변경 |
+| `settings` | 이벤트/라운드 설정 변경 |
+| `matches` | 매치 정보 |
+| `match_results` | 매치 결과 |
+
+> **사전 조건**: Webhook Integration 기능이 해당 Customer(골프장)에 활성화되어 있어야 함
+> (Admin Center > Edit > Product Versions)
+
+---
+
 ## 주의사항
 
 1. **API 키 보안**
@@ -138,15 +205,22 @@ curl -X POST "https://www.golfgenius.com/api_v2/events" \
 
 2. **Rate Limiting**
    - Golf Genius API는 rate limiting이 적용될 수 있음
-   - 대량 요청 시 적절한 간격 유지
+   - 대량 요청 시 적절한 간격 유지 (권장: 분당 30~60회)
+   - 구체적인 Rate Limit은 Golf Genius에 확인 필요
 
 3. **ID 형식**
    - Golf Genius ID는 Numeric 22 또는 String 형식
    - API 응답의 `id`와 `id_str` 모두 지원
 
+4. **Event 조회 API 제약사항**
+   - 날짜 기반 필터 파라미터 없음 (`start_date`, `end_date` 미지원)
+   - 응답의 `start_date`, `end_date` 필드로 클라이언트 측 필터링 필요
+   - Webhook 설정 상태는 GET 응답에 포함되지 않음
+
 ---
 
 ## 관련 문서
 
+- [Live Scoring API](./live-scoring-api.md) - 스코어 전송 API (Step 6 핵심)
 - [설계 문서](../design/index.md) - Golf Genius 연동 설계
-- [원본 API Blueprint](./golfgeniusapiv2.apib) - Golf Genius 제공 원본 문서
+- [원본 API Blueprint](./golfgeniusapiv2.apib) - Golf Genius 제공 원본 문서 (마스터 데이터용)

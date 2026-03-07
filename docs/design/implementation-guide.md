@@ -10,14 +10,14 @@
 
 아래 ID 매핑 테이블을 별도로 두는 것이 좋다.
 
-| Golf Genius ID | Smartscore ID |
-|----------------|---------------|
-| gg_league_id | smartscore_league_id |
-| gg_season_id | smartscore_season_id |
-| gg_event_id | smartscore_event_id |
-| gg_round_id | smartscore_round_id |
-| gg_player_id | smartscore_member_id |
-| gg_roster_entry_id (or event-player composite) | smartscore_event_participant_id |
+| Smartscore ID | Golf Genius ID |
+|---------------|----------------|
+| smartscore_league_id | gg_league_id |
+| smartscore_season_id | gg_season_id |
+| smartscore_event_id | gg_event_id |
+| smartscore_round_id | gg_round_id |
+| smartscore_member_id | gg_player_id |
+| smartscore_event_participant_id | gg_roster_entry_id (or event-player composite) |
 
 ---
 
@@ -83,7 +83,7 @@ flowchart TD
 ### 이유
 - 같은 홀 점수가 수정될 수 있음
 - 네트워크 재전송/중복 수신 가능
-- 모바일 입력 중 hole-by-hole 업데이트가 반복될 수 있음
+- Smartscore Tablet 입력 중 hole-by-hole 업데이트가 반복될 수 있음
 
 ---
 
@@ -144,7 +144,7 @@ flowchart TD
 
 ### 1. Player와 Membership는 다를 수 있음
 
-Golf Genius의 Player는 Smartscore 회원과 1:1이 아닐 수 있다.
+Smartscore 회원과 Golf Genius의 Player는 1:1이 아닐 수 있다.
 외부 초청 선수, 게스트, 임시 등록 참가자가 있을 수 있다.
 
 **대응:**
@@ -186,7 +186,7 @@ Golf Genius의 Player는 Smartscore 회원과 1:1이 아닐 수 있다.
 ## 후속 산출물 (필요 시 생성 가능)
 
 1. Smartscore 연동용 ERD 초안
-2. Golf Genius → Smartscore 실시간 스코어 수신 API 스펙 초안
+2. Smartscore ← Golf Genius 실시간 스코어 수신 API 스펙 초안
 3. Webhook 미지원 가정 Polling 동기화 아키텍처 문서
 4. 테이블 DDL 초안 (MySQL 기준)
 5. Java/Spring Boot 연동 배치 및 Upsert 예제 코드

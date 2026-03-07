@@ -8,11 +8,12 @@
 
 ```mermaid
 flowchart TD
-    A[League\n리그/장기 운영 단위] --> B[Season\n연도/기간 단위]
-    B --> C[Event\n개별 대회/경기]
-    C --> D[Round\n1R/2R/Final 등]
-    C --> E[Roster\n이벤트 참가자 명단]
-    E --> F[Player\n실제 골퍼/사람]
+    MR[Master Roster\n클럽 전체 골퍼 풀] --> P[Player\n실제 골퍼/사람]
+    L[League\n리그/장기 운영 단위] --> S[Season\n연도/기간 단위]
+    S --> E[Event\n개별 대회/경기]
+    E --> R[Round\n1R/2R/Final 등]
+    E --> ER[Event Roster\n이벤트 참가자 명단]
+    ER --> P
 ```
 
 ---
@@ -212,6 +213,69 @@ flowchart LR
 
 ---
 
+## Master Roster와 Event Roster
+
+Golf Genius API에서는 "Roster"가 두 가지 레벨로 사용된다.
+
+### 계층 구조
+
+```
+┌─────────────────────────────────────────────────────────┐
+│  Master Roster (클럽/조직 레벨)                           │
+│  = 클럽에 등록된 전체 골퍼 풀                              │
+│                                                         │
+│  ┌─────────┐  ┌─────────┐  ┌─────────┐  ┌─────────┐    │
+│  │ Player  │  │ Player  │  │ Player  │  │ Player  │    │
+│  │ (홍길동) │  │ (김철수) │  │ (이영희) │  │ (박민수) │    │
+│  └─────────┘  └─────────┘  └─────────┘  └─────────┘    │
+└─────────────────────────────────────────────────────────┘
+                          │
+                          ▼ (일부 Player가 Event에 참가)
+┌─────────────────────────────────────────────────────────┐
+│  Event: "2026 Spring Open"                              │
+│                                                         │
+│  └── Event Roster (이 이벤트 참가자 명단)                  │
+│      ┌─────────┐  ┌─────────┐                           │
+│      │ Player  │  │ Player  │                           │
+│      │ (홍길동) │  │ (이영희) │                           │
+│      └─────────┘  └─────────┘                           │
+└─────────────────────────────────────────────────────────┘
+```
+
+### 용어 정리
+
+| 용어 | 의미 | API 엔드포인트 |
+|------|------|----------------|
+| **Player** | 골퍼 한 명 (개인) | `/players/{player_id}` |
+| **Master Roster** | 클럽에 등록된 **전체 Player 목록** | `/master_roster` |
+| **Master Roster Member** | Master Roster 내 **특정 Player 1명** (이메일로 조회) | `/master_roster_member/{email}` |
+| **Event Roster** | 특정 Event에 참가하는 **Player 목록** | `/events/{event_id}/roster` |
+
+### API 근거
+
+Golf Genius API 문서에서 직접 확인할 수 있는 내용:
+
+> `player_id (numeric 22) - The ID of the player from Master Roster`
+
+즉, `player_id`는 Master Roster에서 가져온다.
+
+### Member vs Player
+
+Golf Genius API에서 "Member"라는 용어가 등장하는 이유:
+- **Master Roster Member**: Master Roster 내 특정 Player를 이메일로 조회할 때 사용
+- **Member Registration**: Event Roster에 Player를 등록할 때 사용 (`/events/{event_id}/members`)
+
+**결론: Member = Player**이다. API 설계상 다른 이름을 사용할 뿐, 실제로는 같은 엔티티를 의미한다.
+
+### 핵심 포인트
+
+1. **Master Roster** = 클럽 레벨의 전체 Player 풀
+2. **Event Roster** = 특정 Event에 참가하는 Player들의 부분집합
+3. **Player** = 개별 골퍼 (Master Roster에 소속)
+4. **Member** = Player와 동일 (API 네이밍 차이일 뿐)
+
+---
+
 ## League / Season / Event의 차이
 
 | 용어 | 성격 | 시간 범위 | 포함 대상 | 예시 |
@@ -239,18 +303,19 @@ flowchart LR
 
 ## 권장 내부 도메인 용어 사전
 
-| Golf Genius 용어 | 권장 한국어 해석 | Smartscore 내부 권장 개념 |
+| Smartscore 내부 권장 개념 | 권장 한국어 해석 | Golf Genius 용어 |
 |---|---|---|
-| Player | 선수 / 골퍼 | 회원 마스터 또는 외부 골퍼 마스터 |
-| Roster | 참가자 명단 | 이벤트 참가 엔트리 |
-| Event Roster | 이벤트 참가자 명단 | event_participant 집합 |
-| Event | 대회 / 경기 | 경기 이벤트 |
-| Round | 라운드 | 라운드 |
-| League | 리그 / 시즌형 운영 프로그램 | 상위 운영 컨테이너 |
-| Season | 시즌 / 연도 단위 | 리그 하위 기간 단위 |
-| Leaderboard | 리더보드 | 실시간 순위판 |
-| Live Scoring | 실시간 스코어 입력 | hole-by-hole score feed |
-| Pairings | 조편성 | 티타임/동반조 정보 |
+| 회원 마스터 또는 외부 골퍼 마스터 | 선수 / 골퍼 | Player |
+| 클럽 전체 회원 풀 | 마스터 명단 | Master Roster |
+| 이벤트 참가 엔트리 | 참가자 명단 | Roster |
+| event_participant 집합 | 이벤트 참가자 명단 | Event Roster |
+| 경기 이벤트 | 대회 / 경기 | Event |
+| 라운드 | 라운드 | Round |
+| 상위 운영 컨테이너 | 리그 / 시즌형 운영 프로그램 | League |
+| 리그 하위 기간 단위 | 시즌 / 연도 단위 | Season |
+| 실시간 순위판 | 리더보드 | Leaderboard |
+| hole-by-hole score feed | 실시간 스코어 입력 | Live Scoring |
+| 티타임/동반조 정보 | 조편성 | Pairings |
 
 ---
 
