@@ -165,15 +165,15 @@ Content-Type: application/json
 {
   "webhooks": {
     "pairings": {
-      "endpoint": "https://api.smartscore.kr/webhooks/pairings",
+      "endpoint": "https://golfgenius.smartscore.kr/ss/gg/webhooks/pairings",
       "enabled": true
     },
     "scores": {
-      "endpoint": "https://api.smartscore.kr/webhooks/scores",
+      "endpoint": "https://golfgenius.smartscore.kr/ss/gg/webhooks/scores",
       "enabled": true
     },
     "players": {
-      "endpoint": "https://api.smartscore.kr/webhooks/players",
+      "endpoint": "https://golfgenius.smartscore.kr/ss/gg/webhooks/players",
       "enabled": true
     }
   }
