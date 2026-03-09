@@ -28,6 +28,15 @@
 - **League와 Event는 동일 레벨**이다. League는 `event_type="league"`인 Event이다.
 - `Roster`는 단순한 사람(Person) 개념이 아니라, **특정 Event에 참가한 Player의 이벤트 단위 참여 레코드**다.
 - Season은 선택적 그룹핑이며, `Category → Event/League → Season(선택) → Round` 구조이다.
+- **Division**은 Event 내 참가자 그룹 분류 (남자부/여자부 등), **Team**은 Division 내 팀 경기 그룹
+
+### DB 스키마 결론
+
+- 기존 SS 테이블(`ss_club`, `ss_member`)을 유지하고 **별도 연동 테이블** 생성
+- `ss_club_golf_genius`: 골프장별 GG API Key, Webhook 설정
+- `ss_member_golf_genius`: SS 회원 ↔ GG Member 매핑 (골프장별)
+- `ss_gg_event`, `ss_gg_event_roster`, `ss_gg_round`: GG 데이터 동기화 및 매칭 결과 저장
+- **회원 매칭 전략**: GG Event Roster 기준으로 이메일/전화번호로 SS 회원 매칭
 
 ### 데이터 흐름 결론
 
@@ -80,6 +89,7 @@ Golf Genius 측에 다음을 확인해야 한다:
 1. API Rate Limit 상세 (요청 수, 적용 단위)
 2. Webhook Integration 기능 일괄 활성화 방법
 3. Webhook payload 상세 스펙
+4. **`players` webhook 범위**: Event 참가자만 해당하는지, Master Roster 전체 변경도 포함하는지
 
 ---
 

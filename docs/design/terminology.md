@@ -12,6 +12,8 @@ flowchart TD
     L[League\n리그/장기 운영 단위] --> S[Season\n연도/기간 단위]
     S --> E[Event\n개별 대회/경기]
     E --> R[Round\n1R/2R/Final 등]
+    E --> D[Division\n참가자 그룹 분류]
+    D --> T[Team\n팀 경기 그룹]
     E --> ER[Event Roster\n이벤트 참가자 명단]
     ER --> P
 ```
@@ -183,6 +185,85 @@ current=true 는 보통 아래 중 하나로 활용된다:
 
 ---
 
+### Division
+
+#### 의미
+Division은 Event 내에서 **참가자를 그룹으로 분류**하는 단위다.
+같은 Event라도 Division별로 독립적인 순위 산정 및 티타임 배정이 가능하다.
+
+#### 예시
+- Men's Division (남자부)
+- Women's Division (여자부)
+- Senior Division (시니어부)
+- A Flight / B Flight / C Flight
+
+#### API 근거
+- 기본 Division: "All Golfers" (모든 참가자)
+- Division별 `tee_times` 배열 지정 가능
+- `playing_divisions`: 특정 라운드에서 경기하는 Division 지정
+
+#### 핵심 포인트
+- Division은 **"누가 경쟁하는가"**를 정의한다.
+- 각 Division은 독립적으로 순위가 산정된다.
+
+---
+
+### Team
+
+#### 의미
+Team은 **Division 내부에서 플레이어를 팀으로 그룹화**하는 단위다.
+팀 경기(2인 1조, 4인 1조 등)에서 같은 팀으로 스코어를 합산할 때 사용한다.
+
+#### API 근거
+> `team_id (optional, integer) - A unique identifier that is used in order to group players into teams within their allocated division. Ignored if division id is not set.`
+
+- `team_id`는 `division_id`가 설정된 경우에만 유효하다.
+- Division 없이 Team만 설정하면 무시된다.
+
+#### 핵심 포인트
+- Team은 **"누가 같은 편인가"**를 정의한다.
+- 반드시 Division 내부에서만 의미를 가진다.
+
+---
+
+### Division vs Team 비교
+
+| 구분 | Division | Team |
+|------|----------|------|
+| **레벨** | Event 레벨 | Division 내부 |
+| **용도** | 참가자 그룹 분류 (경쟁 단위) | 팀 경기 시 플레이어 그룹화 |
+| **기본값** | "All Golfers" | 없음 |
+| **티타임** | Division별 지정 가능 | 해당 없음 |
+| **필수 여부** | 선택 | Division 설정 시에만 유효 |
+
+#### 계층 구조
+
+```
+Event: 2026 Club Championship
+├── Division: A Flight (남자부)
+│   ├── Team 1: 홍길동 + 김철수
+│   ├── Team 2: 이영희 + 박민수
+│   └── Team 3: 최동욱 + 정수현
+│
+├── Division: B Flight (여자부)
+│   ├── Team 1: 박지현 + 최수연
+│   └── Team 2: 김영희 + 이수진
+│
+└── Division: Senior Flight (시니어부)
+    └── (개인전 - Team 없음)
+```
+
+#### 사용 시나리오
+
+| 경기 유형 | Division 사용 | Team 사용 |
+|-----------|---------------|-----------|
+| 개인전 (남/여 구분) | ✅ 남자부, 여자부 | ❌ |
+| 개인전 (핸디캡 구분) | ✅ A/B/C Flight | ❌ |
+| 2인 팀전 (Scramble) | ✅ Flight 구분 | ✅ 2인 1조 |
+| 4인 팀전 (Best Ball) | ✅ Flight 구분 | ✅ 4인 1조 |
+
+---
+
 ## Player vs Roster 차이
 
 **결론부터 말하면, 같은 의미로 보면 안 된다.**
@@ -313,6 +394,8 @@ flowchart LR
 | 라운드 | 라운드 | Round |
 | 상위 운영 컨테이너 | 리그 / 시즌형 운영 프로그램 | League |
 | 리그 하위 기간 단위 | 시즌 / 연도 단위 | Season |
+| 참가자 그룹 분류 | 디비전 / 부문 | Division |
+| 팀 경기 그룹 | 팀 | Team |
 | 실시간 순위판 | 리더보드 | Leaderboard |
 | hole-by-hole score feed | 실시간 스코어 입력 | Live Scoring |
 | 티타임/동반조 정보 | 조편성 | Pairings |

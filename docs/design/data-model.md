@@ -497,6 +497,241 @@ Player (마스터)
 
 ---
 
+## Smartscore GG 연동 테이블 설계
+
+기존 Smartscore 테이블(`ss_club`, `ss_member`)을 유지하면서 별도 테이블로 GG 연동 정보를 관리한다.
+
+### 테이블 관계도 (ERD)
+
+```
+ss_club (기존)
+    │
+    └──< ss_club_golf_genius (1:1)
+              │
+              └──< ss_gg_event (1:N)
+                        │
+                        ├──< ss_gg_event_roster (1:N) ──> ss_member (기존)
+                        │
+                        └──< ss_gg_round (1:N)
+
+ss_member (기존)
+    │
+    └──< ss_member_golf_genius (1:N, 골프장별)
+```
+
+### 테이블 역할 요약
+
+| 테이블 | 역할 |
+|--------|------|
+| `ss_club_golf_genius` | 골프장별 GG API Key, Webhook 설정 |
+| `ss_member_golf_genius` | SS 회원 ↔ GG Member 매핑 (골프장별) |
+| `ss_gg_event` | GG Event 동기화 상태 관리 |
+| `ss_gg_event_roster` | GG Event 참가자 원본 + SS 매칭 결과 |
+| `ss_gg_round` | GG Round 정보 |
+
+### DDL
+
+#### 1. 골프장별 Golf Genius 연동 설정
+
+```sql
+CREATE TABLE ss_club_golf_genius (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    club_id INT NOT NULL COMMENT 'ss_club.club_id FK',
+
+    -- GG API 인증 정보
+    api_key VARCHAR(255) NOT NULL COMMENT 'Golf Genius API Key',
+
+    -- Webhook 설정
+    webhook_types JSON DEFAULT '["courses", "event_roster_members", "pairings", "settings"]'
+        COMMENT '활성화할 Webhook 종류',
+    webhook_secret VARCHAR(255) COMMENT 'Webhook 서명 검증용 시크릿 (있는 경우)',
+
+    -- 동기화 설정
+    sync_enabled TINYINT(1) DEFAULT 1 COMMENT '연동 활성화 여부',
+    score_push_enabled TINYINT(1) DEFAULT 1 COMMENT '스코어 GG 전송 여부',
+    last_event_sync_at DATETIME COMMENT '마지막 Event 동기화 시각',
+    last_roster_sync_at DATETIME COMMENT '마지막 Master Roster 동기화 시각',
+
+    -- 메타
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    UNIQUE KEY uk_club_id (club_id),
+    INDEX idx_sync_enabled (sync_enabled)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+COMMENT='골프장별 Golf Genius 연동 설정';
+```
+
+#### 2. SS 회원 ↔ GG Member 매핑
+
+```sql
+CREATE TABLE ss_member_golf_genius (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    club_id INT NOT NULL COMMENT 'ss_club.club_id FK',
+    member_id BIGINT NOT NULL COMMENT 'ss_member.member_id FK',
+
+    -- GG Member 정보
+    gg_member_id VARCHAR(50) NOT NULL COMMENT 'GG Master Roster member_id',
+    gg_email VARCHAR(255) COMMENT 'GG에 등록된 이메일',
+    gg_external_id VARCHAR(100) COMMENT 'GG external_id (SS member_id 저장용)',
+
+    -- 매칭 정보
+    match_type ENUM('email', 'phone', 'external_id', 'manual') NOT NULL
+        COMMENT '매칭 방식',
+    match_confidence DECIMAL(3,2) DEFAULT 1.00 COMMENT '매칭 신뢰도 (0.00~1.00)',
+
+    -- 메타
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    UNIQUE KEY uk_club_member (club_id, member_id),
+    UNIQUE KEY uk_club_gg_member (club_id, gg_member_id),
+    INDEX idx_member_id (member_id),
+    INDEX idx_gg_member_id (gg_member_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+COMMENT='SS 회원과 GG Member 매핑';
+```
+
+#### 3. GG Event 동기화 상태
+
+```sql
+CREATE TABLE ss_gg_event (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    club_id INT NOT NULL COMMENT 'ss_club.club_id FK',
+
+    -- GG Event 정보
+    gg_event_id VARCHAR(50) NOT NULL COMMENT 'GG Event ID',
+    gg_event_name VARCHAR(255) COMMENT 'GG Event 이름',
+    gg_event_type ENUM('event', 'league') DEFAULT 'event',
+    start_date DATE COMMENT '시작일',
+    end_date DATE COMMENT '종료일',
+
+    -- Webhook 설정 상태
+    webhook_configured TINYINT(1) DEFAULT 0 COMMENT 'Webhook 설정 완료 여부',
+    webhook_configured_at DATETIME COMMENT 'Webhook 설정 시각',
+
+    -- 동기화 상태
+    sync_status ENUM('pending', 'active', 'completed', 'archived') DEFAULT 'pending',
+    last_synced_at DATETIME COMMENT '마지막 동기화 시각',
+
+    -- 메타
+    raw_data JSON COMMENT 'GG API 원본 응답',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    UNIQUE KEY uk_club_gg_event (club_id, gg_event_id),
+    INDEX idx_sync_status (sync_status),
+    INDEX idx_start_date (start_date),
+    INDEX idx_webhook_configured (webhook_configured)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+COMMENT='GG Event 동기화 상태';
+```
+
+#### 4. GG Event Roster 참가자
+
+```sql
+CREATE TABLE ss_gg_event_roster (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    gg_event_id_ref BIGINT NOT NULL COMMENT 'ss_gg_event.id FK',
+
+    -- GG 참가자 정보 (원본)
+    gg_member_id VARCHAR(50) NOT NULL COMMENT 'GG member_id',
+    gg_player_id VARCHAR(50) COMMENT 'GG player_id (라운드용)',
+    gg_email VARCHAR(255),
+    gg_first_name VARCHAR(100),
+    gg_last_name VARCHAR(100),
+    gg_phone VARCHAR(50) COMMENT 'custom_fields에서 추출한 전화번호',
+    gg_handicap_index DECIMAL(4,1),
+    gg_division_id VARCHAR(50),
+    gg_team_id INT,
+
+    -- SS 매칭 결과
+    ss_member_id BIGINT COMMENT 'ss_member.member_id (매칭된 경우)',
+    match_status ENUM('matched', 'unmatched', 'pending') DEFAULT 'pending',
+    match_type ENUM('email', 'phone', 'name', 'manual') COMMENT '매칭 방식',
+
+    -- 메타
+    raw_data JSON COMMENT 'GG API 원본 응답',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    UNIQUE KEY uk_event_gg_member (gg_event_id_ref, gg_member_id),
+    INDEX idx_ss_member_id (ss_member_id),
+    INDEX idx_match_status (match_status),
+    INDEX idx_gg_email (gg_email),
+    INDEX idx_gg_phone (gg_phone)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+COMMENT='GG Event Roster 참가자 원본 및 SS 매칭 결과';
+```
+
+#### 5. GG Round 정보
+
+```sql
+CREATE TABLE ss_gg_round (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    gg_event_id_ref BIGINT NOT NULL COMMENT 'ss_gg_event.id FK',
+
+    -- GG Round 정보
+    gg_round_id VARCHAR(50) NOT NULL COMMENT 'GG Round ID',
+    round_number INT COMMENT '라운드 번호 (1, 2, ...)',
+    round_date DATE,
+
+    -- 상태
+    status ENUM('scheduled', 'in_progress', 'completed') DEFAULT 'scheduled',
+    mobile_score_entry_enabled TINYINT(1) DEFAULT 0,
+
+    -- 메타
+    raw_data JSON,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    UNIQUE KEY uk_event_round (gg_event_id_ref, gg_round_id),
+    INDEX idx_round_date (round_date),
+    INDEX idx_status (status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+COMMENT='GG Round 정보';
+```
+
+### 회원 매칭 로직
+
+GG Event Roster 정보를 기준으로 SS 회원을 매칭한다.
+
+```
+GG Event Roster (Webhook/Polling)
+         │
+         ▼
+┌─────────────────────────────────────┐
+│  GG 참가자 정보                      │
+│  • email                            │
+│  • custom_fields.Phone              │
+│  • first_name / last_name           │
+└─────────────────────────────────────┘
+         │
+         ▼
+┌─────────────────────────────────────┐
+│  SS 회원 매칭 시도                   │
+│  1순위: 이메일로 매칭                │
+│  2순위: 전화번호로 매칭              │
+│  3순위: 이름으로 매칭 (수동 확인)     │
+└─────────────────────────────────────┘
+         │
+         ├── 매칭 성공 → ss_member_id 저장
+         │
+         └── 매칭 실패 → match_status = 'unmatched'
+```
+
+### 참고: 식별자 차이
+
+| 구분 | Smartscore | Golf Genius |
+|------|------------|-------------|
+| **필수 식별자** | 핸드폰 번호 | 이메일 |
+| **선택 식별자** | 이메일 | 전화번호 (custom_fields) |
+| **조회 방식** | 핸드폰 번호로 검색 | 이메일로 검색 |
+
+> **참고**: GG `custom_fields`에 전화번호(`Phone Number`, `Cell Phone`)가 포함되어 있으면 SS 핸드폰 번호와 매칭 가능
+
+---
+
 ## 핵심 관계 요약
 
 ### 계층 관계

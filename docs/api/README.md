@@ -164,34 +164,58 @@ Content-Type: application/json
 
 {
   "webhooks": {
+    "courses": {
+      "endpoint": "https://golfgenius.smartscore.kr/ss/gg/webhooks/courses",
+      "enabled": true
+    },
+    "event_roster_members": {
+      "endpoint": "https://golfgenius.smartscore.kr/ss/gg/webhooks/event_roster_members",
+      "enabled": true
+    },
     "pairings": {
       "endpoint": "https://golfgenius.smartscore.kr/ss/gg/webhooks/pairings",
       "enabled": true
     },
-    "scores": {
-      "endpoint": "https://golfgenius.smartscore.kr/ss/gg/webhooks/scores",
-      "enabled": true
-    },
-    "players": {
-      "endpoint": "https://golfgenius.smartscore.kr/ss/gg/webhooks/players",
+    "settings": {
+      "endpoint": "https://golfgenius.smartscore.kr/ss/gg/webhooks/settings",
       "enabled": true
     }
   }
 }
 ```
 
-### 지원 Webhook 종류
+### 기본 Webhook (4가지)
 
-| Webhook Key | 용도 |
-|-------------|------|
-| `courses` | 코스 정보 변경 |
-| `pairings` | 조 편성 변경 |
-| `players` | 참가자(Roster) 변경 |
-| `scores` | 스코어 변경 |
-| `settings` | 이벤트/라운드 설정 변경 |
-| `matches` | 매치 정보 |
-| `match_results` | 매치 결과 |
+| Webhook Key | 용도 | 기본값 |
+|-------------|------|--------|
+| `courses` | 코스 정보 변경 | ✅ 활성화 |
+| `event_roster_members` | 이벤트 참가자 명단 변경 (추가/삭제) | ✅ 활성화 |
+| `pairings` | 조 편성 변경 | ✅ 활성화 |
+| `settings` | 이벤트/라운드 설정 변경 | ✅ 활성화 |
 
+### 선택적 Webhook
+
+| Webhook Key | 용도 | 비고 |
+|-------------|------|------|
+| `players` | 개별 플레이어 프로필 변경 (이름, 핸디캡 등) | 필요 시 활성화 |
+| `scores` | 스코어 변경 | SS→GG 단방향이므로 기본 비활성화 |
+| `matches` | 매치 정보 | 필요 시 활성화 |
+| `match_results` | 매치 결과 | 필요 시 활성화 |
+| `team_results` | 팀 결과 | 필요 시 활성화 |
+| `teams` | 팀 정보 | 필요 시 활성화 |
+
+> **`players` vs `event_roster_members` 차이점**
+> - `players`: 개별 플레이어의 프로필 정보(이름, 핸디캡 등)가 변경될 때 발생
+> - `event_roster_members`: 이벤트에 참가자가 추가되거나 삭제될 때 발생
+
+> **`players` webhook 범위 (확인 필요)**
+> - Webhook은 Event 단위로 설정되므로, `players` webhook은 **해당 Event에 참가한 플레이어**의 프로필 변경 시에만 발생할 가능성이 높음
+> - Master Roster(클럽 전체 회원 풀)의 프로필 변경은 webhook이 아닌 **Polling 방식**으로 감지 권장
+>   - `GET /api_v2/{api_key}/master_roster` 주기적 조회
+> - 정확한 동작은 Golf Genius 측에 확인 필요
+
+> **골프장별 설정**: 각 골프장의 요구사항에 따라 활성화할 Webhook 종류를 다르게 설정 가능
+>
 > **사전 조건**: Webhook Integration 기능이 해당 Customer(골프장)에 활성화되어 있어야 함
 > (Admin Center > Edit > Product Versions)
 
