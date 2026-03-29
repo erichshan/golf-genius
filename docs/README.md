@@ -1,6 +1,6 @@
 # Golf Genius 연동 문서
 
-이 문서는 Smartscore와 Golf Genius 간의 연동을 위한 설계 문서 및 API 레퍼런스를 포함합니다.
+이 문서는 Smartscore와 Golf Genius 간의 연동을 위한 설계 문서 및 API 레퍼런스를 포함합니다..
 
 ---
 
