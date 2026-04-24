@@ -414,7 +414,7 @@ sequenceDiagram
 
 ---
 
-## 권장 내부 테이블 모델
+## 내부 테이블 모델
 
 ### 마스터 테이블
 
@@ -451,7 +451,7 @@ sequenceDiagram
 | `gg_sync_job_history` | 동기화 작업 이력 |
 | `gg_sync_error` | 동기화 오류 기록 |
 
-### 추천 Player 클래스 다이어그램
+### Player 클래스 다이어그램
 
 ```mermaid
 classDiagram
@@ -468,9 +468,9 @@ classDiagram
 
 ---
 
-## 권장 식별 구조
+## 식별 구조
 
-스코어 데이터의 권장 식별 구조:
+스코어 데이터의 식별 구조:
 
 ```text
 league_id?

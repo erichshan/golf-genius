@@ -8,7 +8,7 @@
 
 ### 최소 매핑 단위
 
-아래 ID 매핑 테이블을 별도로 두는 것이 좋다.
+아래 ID 매핑 테이블을 별도로 둔다.
 
 | Smartscore ID | Golf Genius ID |
 |---------------|----------------|
@@ -34,7 +34,7 @@ flowchart TD
     G --> H[8. Leaderboard 계산/반영]
 ```
 
-이 순서를 추천하는 이유는, 점수보다 먼저 상위 식별자 계층이 안정적으로 매핑되어야 하기 때문이다.
+이 순서로 진행하는 이유는, 점수보다 먼저 상위 식별자 계층이 안정적으로 매핑되어야 하기 때문이다.
 
 ---
 
@@ -71,9 +71,9 @@ flowchart TD
 
 ## Upsert 전략
 
-실시간 점수는 정정이 자주 발생하므로, 단순 insert보다 아래 키 기준 **idempotent upsert**를 추천한다.
+실시간 점수는 정정이 자주 발생하므로, 단순 insert보다 아래 키 기준 **idempotent upsert**를 적용한다.
 
-### 권장 유니크 키
+### 유니크 키
 - event_id
 - round_id
 - roster_entry_id
@@ -87,7 +87,7 @@ flowchart TD
 
 ---
 
-## 멱등 키 권장
+## 멱등 키 구조
 
 | 엔티티 | 멱등 키 |
 |--------|---------|
@@ -175,7 +175,7 @@ Smartscore 회원과 Golf Genius의 Player는 1:1이 아닐 수 있다.
 
 실시간 스코어 연동은 Player 중심이 아니라, 반드시 **Event + Round + Roster(Participant)** 문맥으로 설계해야 한다.
 
-즉 Smartscore 내부 모델은 최소한 아래 3개를 분리하는 것이 좋다:
+즉 Smartscore 내부 모델은 최소한 아래 3개를 분리한다:
 
 1. **Player Master**
 2. **Event Participant (Roster Entry)**
@@ -183,7 +183,7 @@ Smartscore 회원과 Golf Genius의 Player는 1:1이 아닐 수 있다.
 
 ---
 
-## 후속 산출물 (필요 시 생성 가능)
+## 후속 산출물
 
 1. Smartscore 연동용 ERD 초안
 2. Smartscore ← Golf Genius 실시간 스코어 수신 API 스펙 초안

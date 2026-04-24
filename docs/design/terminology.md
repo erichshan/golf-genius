@@ -31,7 +31,7 @@ Player는 가장 기본이 되는 **사람(골퍼)** 개체다.
 #### 해석 포인트
 - Golf Genius API 스니펫에서 Roster 응답에 name, email, handicap 등이 보인다.
 - 실제 API 응답에서는 Player 성격의 속성과 Event 참가 성격의 속성이 함께 섞여 내려올 수 있다.
-- 설계적으로는 다음 두 층을 구분하는 것이 좋다:
+- 설계적으로는 다음 두 층을 구분한다:
   - **Player Master**: 사람 자체의 공통 프로필
   - **Event Participant / Roster Entry**: 특정 이벤트 참가자로서의 상태
 
@@ -382,9 +382,9 @@ flowchart LR
 
 ---
 
-## 권장 내부 도메인 용어 사전
+## 내부 도메인 용어 사전
 
-| Smartscore 내부 권장 개념 | 권장 한국어 해석 | Golf Genius 용어 |
+| Smartscore 내부 개념 | 한국어 해석 | Golf Genius 용어 |
 |---|---|---|
 | 회원 마스터 또는 외부 골퍼 마스터 | 선수 / 골퍼 | Player |
 | 클럽 전체 회원 풀 | 마스터 명단 | Master Roster |

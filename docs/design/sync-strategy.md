@@ -12,7 +12,7 @@ Golf Genius는 **Webhook과 Polling 모두 지원**한다.
 |------|------|
 | Webhook 존재 여부 | ✅ **확인됨** (10가지 webhook 지원) |
 | Polling 기반 연동 | ✅ 가능 |
-| 권장 기본안 | **Hybrid: Polling으로 Event 감지 + API로 Webhook 자동 설정** |
+| 적용 방식 | **Hybrid: Polling으로 Event 감지 + API로 Webhook 자동 설정** |
 
 ### 사용 가능한 Webhook 종류 (10가지)
 
@@ -45,7 +45,7 @@ Golf Genius는 **Webhook과 Polling 모두 지원**한다.
 
 ---
 
-## Hybrid 전략을 권장하는 이유
+## Hybrid 전략 선택 이유
 
 1. **Webhook 설정 자동화**: API를 통해 Event별 Webhook을 프로그래밍 방식으로 설정 가능
 2. **실시간성 확보**: Webhook으로 변경 사항 즉시 수신
@@ -54,7 +54,7 @@ Golf Genius는 **Webhook과 Polling 모두 지원**한다.
 
 ---
 
-## 권장 연동 방식: Hybrid (Polling + Webhook 자동 설정)
+## 연동 방식: Hybrid (Polling + Webhook 자동 설정)
 
 ### 전체 흐름
 
@@ -148,7 +148,7 @@ Content-Type: application/json
 
 > **`players` webhook 범위 (Golf Genius 확인 필요)**
 > - Webhook은 Event 단위로 설정되므로, `players` webhook은 **해당 Event에 참가한 플레이어**의 프로필 변경 시에만 발생할 가능성이 높음
-> - **Master Roster**(클럽 전체 회원 풀)의 프로필 변경은 webhook이 아닌 Polling 방식으로 감지 권장
+> - **Master Roster**(클럽 전체 회원 풀)의 프로필 변경은 webhook이 아닌 Polling 방식으로 감지한다
 >   - `GET /api_v2/{api_key}/master_roster` API 주기적 조회 (30분~1시간 주기)
 >   - 응답 JSON 해시 비교로 변경 감지
 > - 정확한 동작은 Golf Genius 측에 확인 필요
@@ -339,7 +339,7 @@ GET /api_v2/{api_key}/events?page={page}&season={season_id}&category={category_i
 
 > **문서에 구체적인 Rate Limit 명시 없음** - Golf Genius 측에 확인 필요
 
-### 권장 접근
+### 적용 방식
 
 ```python
 from ratelimit import limits, sleep_and_retry
@@ -371,9 +371,9 @@ def call_gg_api(endpoint, **kwargs):
 
 ---
 
-## 권장안 정리
+## 적용 방식 정리
 
-### 추천안: Hybrid (Polling + Webhook 자동 설정)
+### 채택 방식: Hybrid (Polling + Webhook 자동 설정)
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
@@ -397,8 +397,8 @@ def call_gg_api(endpoint, **kwargs):
 | 누락 방지 | Polling이 기본이라 Webhook 실패해도 복구 가능 |
 | 확장성 | 10,000개 골프장이어도 중앙에서 일괄 관리 |
 
-### 비추천안
-- 외부 Webhook만 믿고 raw 저장 없이 바로 반영
+### 배제 방식
+- 외부 Webhook만 믿고 raw 저장 없이 바로 반영하는 방식은 사용하지 않는다.
 - **이유**: 재처리/역추적/부분 유실 대응이 어렵다.
 
 ---
@@ -446,9 +446,9 @@ Golf Genius Live Scoring API를 통해 스코어를 전송한다.
 
 ---
 
-## 실무 권장사항
+## 운영 원칙
 
-Hybrid 전략(Polling + Webhook)을 안정적으로 운영하기 위한 권장사항:
+Hybrid 전략(Polling + Webhook)을 안정적으로 운영하기 위한 원칙:
 
 1. **마스터 동기화 배치**: Event/Roster 주기적 동기화 (5분)
 2. **Webhook 자동 설정**: 새 Event 감지 시 PUT API로 Webhook 자동 설정

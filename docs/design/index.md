@@ -12,8 +12,8 @@
 ### 다루는 내용
 
 1. Golf Genius 데이터 모델 및 용어 관계 정리
-2. Smartscore 연동용 시스템 아키텍처 제안
-3. Webhook vs Polling 구조 분석 및 권장안
+2. Smartscore 연동용 시스템 아키텍처 설계
+3. Webhook vs Polling 구조 분석 및 적용 방식
 4. Golf Genius API Endpoint 정리 (공개 접근 가능한 범위 중심)
 5. 실전 구현 가이드
 6. GG Tee Sheet 연동 설계 (ERP Only, GG Only, ERP + GG)
@@ -79,7 +79,7 @@
 
 - **TeeSheetAdapter 패턴**으로 ERP/GG 데이터 소스를 추상화
 - 3가지 시나리오 지원: ERP Only, GG Only, ERP + GG
-- ERP + GG 시 **GG 우선 전략** 권장 (설정으로 변경 가능)
+- ERP + GG 시 **GG 우선 전략** 적용 (설정으로 변경 가능)
 - 스코어는 설정에 따라 ERP, GG, 또는 양쪽 모두에 전송
 - 기존 `CInterlock{ErpType}` 패턴 확장으로 `CInterlockGolfGenius` 구현
 

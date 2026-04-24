@@ -16,7 +16,7 @@ Smartscore 입장에서 필요한 목표는 다음과 같다:
 
 ---
 
-## 권장 아키텍처 개요
+## 아키텍처 개요
 
 ```mermaid
 flowchart LR
@@ -121,7 +121,7 @@ flowchart LR
 
 - 외부 응답 원본 JSON을 저장한다.
 - 원인 분석, 재처리, 스키마 변경 대응에 매우 유용하다.
-- 추천 테이블: `gg_sync_raw(id, entity_type, entity_id, polled_at, payload_json, hash, status)`
+- 테이블 구조: `gg_sync_raw(id, entity_type, entity_id, polled_at, payload_json, hash, status)`
 
 ### 3) Queue / Kafka
 
@@ -159,7 +159,7 @@ flowchart LR
 
 ## Cursor 기반 Delta Sync
 
-Golf Genius 공개 문서만으로는 모든 엔드포인트의 `updated_since` 지원 여부를 단정할 수 없다. 따라서 아래 우선순위로 설계하는 것이 좋다:
+Golf Genius 공개 문서만으로는 모든 엔드포인트의 `updated_since` 지원 여부를 단정할 수 없다. 따라서 아래 우선순위로 설계한다:
 
 1. API가 수정시각 필터를 제공하면 그 값 사용
 2. 없으면 대상 집합(Event IDs)을 먼저 좁힌 뒤 상세 조회
@@ -201,7 +201,7 @@ sequenceDiagram
 - **내부 → Redis/DB**: 변경 즉시 반영
 - **내부 → 클라이언트**: WebSocket/SSE push
 
-즉, **"외부는 준실시간, 내부 UX는 실시간"** 구조를 권장한다.
+즉, **"외부는 준실시간, 내부 UX는 실시간"** 구조로 설계한다.
 
 ---
 
@@ -217,7 +217,7 @@ sequenceDiagram
 
 ---
 
-## 권장 배치 우선순위
+## 배치 우선순위
 
 ### 고빈도 (30초~1분)
 - 오늘 진행 중인 Event의 leaderboard / score / round 상태
